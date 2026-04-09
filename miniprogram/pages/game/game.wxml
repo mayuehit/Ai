@@ -1,0 +1,239 @@
+<!-- pages/game/game.wxml -->
+<view class="game-container">
+  <!-- 游戏头部信息 -->
+  <view class="game-header">
+    <view class="game-info">
+      <text class="round-info">第 {{currentRound}} 轮 / 共 {{totalRounds}} 轮</text>
+      <text class="time-left" wx:if="{{gameState === 'describing' || gameState === 'voting'}}">
+        剩余时间: {{timeLeft}}秒
+      </text>
+      <text class="game-state">{{getGameStateText(gameState)}}</text>
+    </view>
+    
+    <view class="my-info">
+      <text class="my-role">我的身份: {{getRoleText(myRole)}}</text>
+      <text class="my-word" wx:if="{{myWord && gameState !== 'waiting'}}">我的词语: {{myWord}}</text>
+    </view>
+  </view>
+
+  <!-- 玩家列表 -->
+  <view class="players-section">
+    <view class="section-title">
+      <text>玩家状态</text>
+    </view>
+    
+    <scroll-view class="players-list" scroll-y>
+      <view 
+        class="player-item {{getPlayerStatusColor(item)}}" 
+        wx:for="{{players}}" 
+        wx:key="id"
+        data-player="{{item}}"
+        bindtap="onPlayerTap"
+      >
+        <image class="player-avatar" src="{{item.avatar || '/images/default-avatar.png'}}"></image>
+        <view class="player-details">
+          <text class="player-name">{{item.nickname}}</text>
+          <text class="player-status">
+            {{item.id === currentPlayerIndex ? '描述中' : ''}}
+            {{item.eliminated ? '已淘汰' : ''}}
+          </text>
+          <text class="player-votes" wx:if="{{votes[item.id]}}">
+            得票: {{getVoteCount(item.id)}}
+          </text>
+        </view>
+        <view class="player-indicator">
+          <view class="turn-indicator" wx:if="{{item.id === currentPlayerIndex}}">▶</view>
+          <view class="vote-indicator" wx:if="{{myVote === item.id}}">✓</view>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 描述区域 -->
+  <view class="description-section" wx:if="{{gameState === 'describing'}}">
+    <view class="section-title">
+      <text>描述记录 ({{descriptions.length}}/{{players.length}})</text>
+    </view>
+    
+    <scroll-view class="descriptions-list" scroll-y>
+      <view class="description-item" wx:for="{{descriptions}}" wx:key="id">
+        <image class="desc-avatar" src="{{item.avatar || '/images/default-avatar.png'}}"></image>
+        <view class="desc-content">
+          <text class="desc-player">{{item.nickname}}: </text>
+          <text class="desc-text">{{item.description || '(跳过)'}}</text>
+          <text class="desc-time">{{formatTime(item.timestamp)}}</text>
+        </view>
+      </view>
+    </scroll-view>
+    
+    <!-- 我的描述输入 -->
+    <view class="my-description" wx:if="{{isMyTurn}}">
+      <input 
+        class="desc-input" 
+        placeholder="请输入你的描述..." 
+        value="{{myDescription}}" 
+        bindinput="onDescriptionInput"
+        bindconfirm="submitDescription"
+        maxlength="50"
+      />
+      <view class="desc-actions">
+        <button class="btn skip-btn" bindtap="submitDescription">跳过</button>
+        <button class="btn submit-btn" bindtap="submitDescription">提交</button>
+      </view>
+      <text class="hint">提示: 不要直接说出词语，用相关描述</text>
+    </view>
+    
+    <view class="waiting-turn" wx:if="{{!isMyTurn}}">
+      <text>等待 {{getCurrentPlayer()?.nickname || '玩家'}} 描述...</text>
+    </view>
+  </view>
+
+  <!-- 投票区域 -->
+  <view class="voting-section" wx:if="{{gameState === 'voting'}}">
+    <view class="section-title">
+      <text>投票环节 - 找出卧底</text>
+    </view>
+    
+    <view class="vote-instruction">
+      <text>根据描述，投票选出你认为的卧底</text>
+    </view>
+    
+    <scroll-view class="vote-candidates" scroll-y>
+      <view 
+        class="candidate-item {{myVote === item.id ? 'selected' : ''}}" 
+        wx:for="{{players}}" 
+        wx:key="id"
+        wx:if="{{!item.eliminated}}"
+        data-player-id="{{item.id}}"
+        bindtap="onCandidateTap"
+      >
+        <image class="candidate-avatar" src="{{item.avatar || '/images/default-avatar.png'}}"></image>
+        <view class="candidate-info">
+          <text class="candidate-name">{{item.nickname}}</text>
+          <text class="candidate-desc" wx:if="{{getPlayerDescription(item.id)}}">
+            描述: {{getPlayerDescription(item.id)}}
+          </text>
+        </view>
+        <view class="vote-count" wx:if="{{votes[item.id]}}">
+          {{getVoteCount(item.id)}}
+        </view>
+      </view>
+    </scroll-view>
+    
+    <view class="vote-actions">
+      <button 
+        class="btn submit-vote-btn" 
+        bindtap="submitVote"
+        disabled="{{!myVote}}"
+      >
+        {{myVote ? '确认投票' : '请选择玩家'}}
+      </button>
+      <text class="hint">每人只能投票一次，不可更改</text>
+    </view>
+  </view>
+
+  <!-- 游戏结果区域 -->
+  <view class="result-section" wx:if="{{gameState === 'result' || gameState === 'ended'}}">
+    <view class="section-title">
+      <text>第 {{currentRound}} 轮结果</text>
+    </view>
+    
+    <view class="round-result">
+      <view class="result-card {{winner === 'civilian' ? 'civilian-win' : 'undercover-win'}}">
+        <text class="result-title">{{winner === 'civilian' ? '平民胜利' : '卧底胜利'}}</text>
+        
+        <view class="eliminated-player" wx:if="{{eliminatedPlayer}}">
+          <image class="eliminated-avatar" src="{{eliminatedPlayer.avatar || '/images/default-avatar.png'}}"></image>
+          <view class="eliminated-info">
+            <text class="eliminated-name">{{eliminatedPlayer.nickname}}</text>
+            <text class="eliminated-role">身份: {{getRoleText(eliminatedPlayer.role)}}</text>
+            <text class="eliminated-votes">得票: {{getVoteCount(eliminatedPlayer.id)}}</text>
+          </view>
+        </view>
+        
+        <view class="result-details">
+          <text>本轮投票详情:</text>
+          <view class="vote-detail" wx:for="{{players}}" wx:key="id">
+            <text>{{item.nickname}} → {{getVotedPlayer(item.id)?.nickname || '弃权'}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+    
+    <view class="result-actions" wx:if="{{gameState === 'result'}}">
+      <text class="next-round-info" wx:if="{{currentRound < totalRounds}}">
+        下一轮即将开始...
+      </text>
+      <text class="game-over-info" wx:if="{{currentRound >= totalRounds}}">
+        游戏结束，正在计算最终结果...
+      </text>
+    </view>
+    
+    <view class="final-actions" wx:if="{{gameState === 'ended'}}">
+      <button class="btn back-btn" bindtap="backToRoom">返回房间</button>
+      <button class="btn share-btn" bindtap="shareResult">分享结果</button>
+      <button class="btn replay-btn">再来一局</button>
+    </view>
+  </view>
+
+  <!-- 游戏控制按钮 -->
+  <view class="game-controls">
+    <button class="btn exit-btn" bindtap="backToRoom">退出游戏</button>
+    <button class="btn help-btn">游戏规则</button>
+  </view>
+
+  <!-- 词语提示弹窗 -->
+  <view class="modal {{showWordModal ? 'show' : ''}}">
+    <view class="modal-content word-modal">
+      <view class="modal-header">
+        <text class="modal-title">你的身份和词语</text>
+      </view>
+      
+      <view class="modal-body">
+        <view class="role-display {{myRole}}">
+          <text class="role-title">{{getRoleText(myRole)}}</text>
+          <text class="role-desc">
+            {{myRole === 'civilian' ? '你需要描述词语并找出卧底' : '你需要隐藏身份并混淆视听'}}
+          </text>
+        </view>
+        
+        <view class="word-display">
+          <text class="word-label">你的词语:</text>
+          <text class="the-word">{{myWord}}</text>
+        </view>
+        
+        <text class="word-hint">
+          {{myRole === 'civilian' ? '平民词语相同，卧底词语相似' : '你的词语与平民相似但不同'}}
+        </text>
+      </view>
+      
+      <view class="modal-footer">
+        <button class="btn confirm-btn" bindtap="hideWordModal">开始游戏</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 投票确认弹窗 -->
+  <view class="modal {{showVoteModal ? 'show' : ''}}">
+    <view class="modal-content">
+      <view class="modal-header">
+        <text class="modal-title">确认投票</text>
+        <button class="close-btn" bindtap="hideVoteModal">×</button>
+      </view>
+      
+      <view class="modal-body" wx:if="{{myVote}}">
+        <text>你确定要投票给</text>
+        <view class="selected-player">
+          <image class="selected-avatar" src="{{getPlayerById(myVote)?.avatar || '/images/default-avatar.png'}}"></image>
+          <text class="selected-name">{{getPlayerById(myVote)?.nickname || '玩家'}}</text>
+        </view>
+        <text>吗？</text>
+      </view>
+      
+      <view class="modal-footer">
+        <button class="btn cancel-btn" bindtap="hideVoteModal">取消</button>
+        <button class="btn confirm-btn" bindtap="submitVote">确认</button>
+      </view>
+    </view>
+  </view>
+</view>
