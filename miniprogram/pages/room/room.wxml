@@ -1,0 +1,202 @@
+<!-- pages/room/room.wxml -->
+<view class="room-container">
+  <!-- 房间信息区域 -->
+  <view class="room-header" wx:if="{{roomCode}}">
+    <view class="room-info">
+      <text class="room-title">房间号: {{roomCode}}</text>
+      <text class="room-status">状态: {{gameStatus === 'waiting' ? '等待中' : gameStatus === 'playing' ? '游戏中' : '已结束'}}</text>
+      <text class="player-count">玩家: {{players.length}}/{{roomSettings.maxPlayers}}</text>
+    </view>
+    
+    <view class="room-actions">
+      <button class="btn copy-btn" bindtap="copyRoomCode">复制房间号</button>
+      <button class="btn share-btn" open-type="share" bindtap="shareRoom">分享</button>
+      <button class="btn leave-btn" bindtap="leaveRoom">离开房间</button>
+    </view>
+  </view>
+
+  <!-- 玩家列表 -->
+  <view class="players-section" wx:if="{{roomCode}}">
+    <view class="section-title">
+      <text>玩家列表 ({{players.length}}/{{roomSettings.maxPlayers}})</text>
+    </view>
+    
+    <scroll-view class="players-list" scroll-y>
+      <view class="player-item" wx:for="{{players}}" wx:key="id">
+        <image class="player-avatar" src="{{item.avatar || '/images/default-avatar.png'}}"></image>
+        <view class="player-info">
+          <text class="player-name">{{item.nickname}}</text>
+          <text class="player-role" wx:if="{{item.role}}">{{item.role === 'host' ? '房主' : '玩家'}}</text>
+        </view>
+        <view class="player-status {{item.online ? 'online' : 'offline'}}"></view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 聊天区域 -->
+  <view class="chat-section" wx:if="{{roomCode}}">
+    <view class="section-title">
+      <text>房间聊天</text>
+    </view>
+    
+    <scroll-view class="messages-list" scroll-y scroll-into-view="last-message">
+      <view class="message-item" wx:for="{{messages}}" wx:key="id">
+        <view class="message {{item.sender === 'system' ? 'system-message' : item.sender === app.globalData.userInfo?.id ? 'my-message' : 'other-message'}}">
+          <image class="message-avatar" src="{{item.avatar || '/images/default-avatar.png'}}" wx:if="{{item.sender !== 'system'}}"></image>
+          <view class="message-content">
+            <text class="message-sender" wx:if="{{item.sender !== 'system'}}">{{item.nickname || '玩家'}}: </text>
+            <text class="message-text">{{item.content}}</text>
+            <text class="message-time">{{formatTime(item.timestamp)}}</text>
+          </view>
+        </view>
+      </view>
+      <view id="last-message"></view>
+    </scroll-view>
+    
+    <view class="message-input">
+      <input 
+        class="input" 
+        placeholder="输入消息..." 
+        value="{{newMessage}}" 
+        bindinput="onMessageInput"
+        bindconfirm="sendMessage"
+      />
+      <button class="send-btn" bindtap="sendMessage">发送</button>
+    </view>
+  </view>
+
+  <!-- 游戏控制 -->
+  <view class="game-controls" wx:if="{{roomCode}}">
+    <button 
+      class="btn start-game-btn" 
+      bindtap="startGame"
+      disabled="{{!isHost || players.length < 4}}"
+    >
+      开始游戏
+    </button>
+    <text class="hint" wx:if="{{players.length < 4}}">至少需要4名玩家才能开始游戏</text>
+  </view>
+
+  <!-- 无房间时的主界面 -->
+  <view class="main-interface" wx:if="{{!roomCode}}">
+    <view class="welcome-section">
+      <image class="logo" src="/images/game-logo.png"></image>
+      <text class="welcome-title">谁是卧底</text>
+      <text class="welcome-subtitle">与好友一起体验推理的乐趣</text>
+    </view>
+    
+    <view class="action-buttons">
+      <button class="btn create-room-btn" bindtap="showCreateRoomModal">
+        <image class="btn-icon" src="/images/create-icon.png"></image>
+        <text>创建房间</text>
+      </button>
+      
+      <button class="btn join-room-btn" bindtap="showJoinRoomModal">
+        <image class="btn-icon" src="/images/join-icon.png"></image>
+        <text>加入房间</text>
+      </button>
+      
+      <button class="btn quick-start-btn">
+        <image class="btn-icon" src="/images/quick-icon.png"></image>
+        <text>快速开始</text>
+      </button>
+    </view>
+    
+    <view class="game-stats">
+      <view class="stat-item">
+        <text class="stat-value">1,234</text>
+        <text class="stat-label">在线玩家</text>
+      </view>
+      <view class="stat-item">
+        <text class="stat-value">567</text>
+        <text class="stat-label">进行中游戏</text>
+      </view>
+      <view class="stat-item">
+        <text class="stat-value">89%</text>
+        <text class="stat-label">好评率</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 创建房间弹窗 -->
+  <view class="modal {{showCreateModal ? 'show' : ''}}">
+    <view class="modal-content">
+      <view class="modal-header">
+        <text class="modal-title">创建房间</text>
+        <button class="close-btn" bindtap="hideCreateRoomModal">×</button>
+      </view>
+      
+      <view class="modal-body">
+        <view class="form-group">
+          <text class="form-label">最大玩家数</text>
+          <slider 
+            min="4" 
+            max="12" 
+            step="1" 
+            value="{{roomSettings.maxPlayers}}" 
+            bindchange="updateRoomSetting" 
+            data-key="maxPlayers"
+          />
+          <text class="slider-value">{{roomSettings.maxPlayers}}人</text>
+        </view>
+        
+        <view class="form-group">
+          <text class="form-label">游戏轮数</text>
+          <slider 
+            min="1" 
+            max="10" 
+            step="1" 
+            value="{{roomSettings.rounds}}" 
+            bindchange="updateRoomSetting" 
+            data-key="rounds"
+          />
+          <text class="slider-value">{{roomSettings.rounds}}轮</text>
+        </view>
+        
+        <view class="form-group">
+          <text class="form-label">描述时间限制</text>
+          <slider 
+            min="30" 
+            max="120" 
+            step="10" 
+            value="{{roomSettings.timeLimit}}" 
+            bindchange="updateRoomSetting" 
+            data-key="timeLimit"
+          />
+          <text class="slider-value">{{roomSettings.timeLimit}}秒</text>
+        </view>
+      </view>
+      
+      <view class="modal-footer">
+        <button class="btn cancel-btn" bindtap="hideCreateRoomModal">取消</button>
+        <button class="btn confirm-btn" bindtap="createRoom">创建</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 加入房间弹窗 -->
+  <view class="modal {{showJoinModal ? 'show' : ''}}">
+    <view class="modal-content">
+      <view class="modal-header">
+        <text class="modal-title">加入房间</text>
+        <button class="close-btn" bindtap="hideJoinRoomModal">×</button>
+      </view>
+      
+      <view class="modal-body">
+        <input 
+          class="room-code-input" 
+          placeholder="请输入房间号" 
+          value="{{roomCode}}" 
+          bindinput="onRoomCodeInput"
+          maxlength="6"
+        />
+        <text class="hint">房间号通常是6位数字或字母</text>
+      </view>
+      
+      <view class="modal-footer">
+        <button class="btn cancel-btn" bindtap="hideJoinRoomModal">取消</button>
+        <button class="btn confirm-btn" bindtap="joinRoom">加入</button>
+      </view>
+    </view>
+  </view>
+</view>
