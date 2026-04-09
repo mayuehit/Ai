@@ -75,6 +75,21 @@ Page({
     this.setData({ difficulty });
   },
 
+  // 获取难度文本
+  getDifficultyText(level) {
+    const levels = ['简单', '普通', '困难'];
+    return levels[level - 1] || '普通';
+  },
+
+  // 显示/隐藏规则弹窗
+  showRulesModal() {
+    this.setData({ showRulesModal: true });
+  },
+
+  hideRulesModal() {
+    this.setData({ showRulesModal: false });
+  },
+
   // 更新玩家名称
   updatePlayerName(e) {
     this.setData({ humanPlayerName: e.detail.value });

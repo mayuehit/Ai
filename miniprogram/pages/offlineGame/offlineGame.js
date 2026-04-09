@@ -382,6 +382,96 @@ Page({
     });
   },
 
+  // 辅助函数
+  getGameStateText(state) {
+    const states = {
+      waiting: '等待开始',
+      describing: '描述环节',
+      voting: '投票环节',
+      result: '结果揭晓',
+      ended: '游戏结束'
+    };
+    return states[state] || state;
+  },
+
+  getStateHint(state) {
+    const hints = {
+      describing: '玩家轮流描述词语',
+      voting: '投票选出怀疑的卧底',
+      result: '查看本轮结果',
+      ended: '游戏已结束'
+    };
+    return hints[state] || '';
+  },
+
+  getPlayerStatus(player) {
+    if (player.eliminated) return 'eliminated';
+    if (this.isPlayerTurn(player)) return 'current';
+    return 'normal';
+  },
+
+  isPlayerTurn(player) {
+    const gameState = offlineGame.getGameState();
+    const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+    return currentPlayer && player.id === currentPlayer.id;
+  },
+
+  getAliveCount() {
+    return this.data.players.filter(p => !p.eliminated).length;
+  },
+
+  getPlayerAvatar(playerId) {
+    const player = this.data.players.find(p => p.id === playerId);
+    return player ? player.avatar : '/images/default-avatar.png';
+  },
+
+  getPlayerName(playerId) {
+    const player = this.data.players.find(p => p.id === playerId);
+    return player ? player.name : '玩家';
+  },
+
+  isPlayerAI(playerId) {
+    const player = this.data.players.find(p => p.id === playerId);
+    return player ? player.isAI : false;
+  },
+
+  getVotedCount() {
+    return Object.keys(this.data.votes).length;
+  },
+
+  getResultSubtitle() {
+    if (this.data.winner === 'civilian') {
+      return '成功找出所有卧底';
+    } else {
+      return '卧底成功隐藏身份';
+    }
+  },
+
+  getVotedPlayerName(playerId) {
+    const targetId = this.data.votes[playerId];
+    if (!targetId) return '';
+    const player = this.data.players.find(p => p.id === targetId);
+    return player ? player.name : '';
+  },
+
+  getPlayerById(playerId) {
+    return this.data.players.find(p => p.id === playerId);
+  },
+
+  formatTime(timestamp) {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+  },
+
+  saveGame() {
+    const saved = offlineGame.saveToStorage();
+    wx.showToast({
+      title: saved ? '游戏已保存' : '保存失败',
+      icon: saved ? 'success' : 'none'
+    });
+  },
+
   onShareAppMessage() {
     const resultText = this.data.winner === 'civilian' ? 
       '平民胜利' : '卧底胜利';

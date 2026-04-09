@@ -1,0 +1,193 @@
+<!-- 单机版首页 -->
+<view class="offline-container">
+  <!-- 头部 -->
+  <view class="header">
+    <image class="logo" src="/images/offline-logo.png"></image>
+    <text class="title">谁是卧底 - 单机版</text>
+    <text class="subtitle">离线畅玩，无需网络</text>
+  </view>
+
+  <!-- 游戏统计 -->
+  <view class="stats-card" bindtap="showStatsDetail">
+    <view class="stats-header">
+      <text class="stats-title">游戏统计</text>
+      <text class="stats-clear" bindtap="clearStats" catchtap>清空</text>
+    </view>
+    <view class="stats-content">
+      <view class="stat-item">
+        <text class="stat-value">{{stats.totalGames}}</text>
+        <text class="stat-label">总游戏</text>
+      </view>
+      <view class="stat-item">
+        <text class="stat-value">{{stats.wins}}</text>
+        <text class="stat-label">胜利</text>
+      </view>
+      <view class="stat-item">
+        <text class="stat-value">{{stats.winRate}}%</text>
+        <text class="stat-label">胜率</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 游戏设置 -->
+  <view class="settings-card">
+    <view class="section-title">
+      <text>游戏设置</text>
+    </view>
+    
+    <view class="setting-item">
+      <text class="setting-label">玩家数量: {{playerCount}}人</text>
+      <slider 
+        min="4" 
+        max="12" 
+        step="1" 
+        value="{{playerCount}}" 
+        bindchange="updatePlayerCount"
+        show-value
+      />
+      <text class="setting-hint">至少4人，建议6-8人</text>
+    </view>
+    
+    <view class="setting-item">
+      <text class="setting-label">游戏轮数: {{totalRounds}}轮</text>
+      <slider 
+        min="1" 
+        max="10" 
+        step="1" 
+        value="{{totalRounds}}" 
+        bindchange="updateTotalRounds"
+        show-value
+      />
+    </view>
+    
+    <view class="setting-item">
+      <text class="setting-label">AI难度: {{getDifficultyText(difficulty)}}</text>
+      <slider 
+        min="1" 
+        max="3" 
+        step="1" 
+        value="{{difficulty}}" 
+        bindchange="updateDifficulty"
+        show-value
+      />
+    </view>
+    
+    <view class="setting-item">
+      <text class="setting-label">你的名字</text>
+      <input 
+        class="name-input" 
+        placeholder="输入你的名字" 
+        value="{{humanPlayerName}}" 
+        bindinput="updatePlayerName"
+        maxlength="10"
+      />
+    </view>
+  </view>
+
+  <!-- 玩家管理 -->
+  <view class="players-card">
+    <view class="section-title">
+      <text>玩家列表 ({{players.length}}/{{playerCount}})</text>
+      <button class="btn-add" bindtap="addAIPlayer" size="mini">+ AI玩家</button>
+    </view>
+    
+    <scroll-view class="players-list" scroll-y>
+      <view class="player-item" wx:for="{{players}}" wx:key="id">
+        <image class="player-avatar" src="{{item.avatar}}"></image>
+        <view class="player-info">
+          <text class="player-name">{{item.name}}</text>
+          <text class="player-type {{item.isAI ? 'ai' : 'human'}}">
+            {{item.isAI ? 'AI' : '玩家'}}
+          </text>
+        </view>
+        <button 
+          class="btn-remove" 
+          bindtap="removePlayer" 
+          data-index="{{index}}"
+          wx:if="{{item.isAI}}"
+        >
+          移除
+        </button>
+      </view>
+      
+      <!-- 添加玩家提示 -->
+      <view class="add-player-hint" wx:if="{{players.length < 4}}">
+        <text>点击"添加AI玩家"按钮添加玩家</text>
+        <text>至少需要4名玩家才能开始游戏</text>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 游戏控制 -->
+  <view class="controls">
+    <button 
+      class="btn-start" 
+      bindtap="startGame"
+      disabled="{{players.length < 4}}"
+    >
+      {{gameStarted ? '继续游戏' : '开始游戏'}}
+    </button>
+    
+    <button 
+      class="btn-new" 
+      bindtap="newGame"
+      wx:if="{{gameStarted}}"
+    >
+      新游戏
+    </button>
+    
+    <button class="btn-rules" bindtap="showRules">
+      游戏规则
+    </button>
+  </view>
+
+  <!-- 底部信息 -->
+  <view class="footer">
+    <text class="footer-text">🎮 单机离线版 · 无需网络 · 随时畅玩</text>
+    <text class="footer-hint">游戏进度自动保存，退出后可继续</text>
+  </view>
+
+  <!-- 游戏规则弹窗 -->
+  <view class="modal rules-modal" wx:if="{{showRulesModal}}">
+    <view class="modal-content">
+      <view class="modal-header">
+        <text class="modal-title">游戏规则</text>
+        <button class="close-btn" bindtap="hideRulesModal">×</button>
+      </view>
+      <scroll-view class="modal-body" scroll-y>
+        <text class="rules-content">
+          《谁是卧底》游戏规则
+
+          游戏目标：
+          平民需要找出卧底，卧底需要隐藏身份。
+
+          游戏流程：
+          1. 系统随机分配角色（1个卧底，其余平民）
+          2. 平民获得相同词语，卧底获得相似词语
+          3. 玩家轮流描述自己的词语（不能直接说出）
+          4. 每轮描述后进行投票，淘汰得票最多的玩家
+          5. 重复步骤3-4直到游戏结束
+
+          胜利条件：
+          • 平民胜利：所有卧底被淘汰
+          • 卧底胜利：平民全部被淘汰或游戏轮数结束
+
+          游戏技巧：
+          • 平民：描述要具体但不暴露词语
+          • 卧底：描述要模糊，模仿平民
+          • 仔细听其他人的描述
+          • 观察投票模式
+
+          单机版特点：
+          • 完全离线，无需网络
+          • AI玩家智能对战
+          • 游戏进度自动保存
+          • 游戏统计记录
+        </text>
+      </scroll-view>
+      <view class="modal-footer">
+        <button class="btn-confirm" bindtap="hideRulesModal">明白了</button>
+      </view>
+    </view>
+  </view>
+</view>
