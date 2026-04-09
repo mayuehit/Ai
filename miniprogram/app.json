@@ -1,5 +1,7 @@
 {
   "pages": [
+    "pages/offline/offline",
+    "pages/offlineGame/offlineGame",
     "pages/index/index",
     "pages/room/room",
     "pages/game/game",

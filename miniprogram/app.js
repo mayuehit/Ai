@@ -5,8 +5,8 @@ App({
     // 小程序初始化时执行
     console.log('小程序初始化');
     
-    // 检查微信登录状态
-    this.checkLoginStatus();
+    // 单机版：不需要微信登录
+    // this.checkLoginStatus();
   },
 
   onShow() {
