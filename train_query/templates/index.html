@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>12306 火车票查询</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, #1a6fc4 0%, #0f4c8a 100%);
+      color: #fff;
+      padding: 24px 20px 20px;
+      text-align: center;
+    }
+    header h1 { font-size: 1.8rem; letter-spacing: 2px; }
+    header p { margin-top: 6px; opacity: .75; font-size: .9rem; }
+
+    .search-box {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,.1);
+      margin: 24px auto;
+      max-width: 860px;
+      padding: 28px 32px;
+    }
+
+    .form-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: flex-end;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-width: 140px;
+    }
+    .form-group label {
+      font-size: .82rem;
+      color: #666;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+    .form-group input,
+    .form-group select {
+      border: 1.5px solid #d9d9d9;
+      border-radius: 8px;
+      font-size: 1rem;
+      height: 44px;
+      padding: 0 12px;
+      transition: border-color .2s;
+      width: 100%;
+    }
+    .form-group input:focus,
+    .form-group select:focus {
+      border-color: #1a6fc4;
+      outline: none;
+    }
+
+    .btn-search {
+      background: linear-gradient(135deg, #1a6fc4, #0f4c8a);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      height: 44px;
+      min-width: 120px;
+      padding: 0 24px;
+      transition: opacity .2s;
+    }
+    .btn-search:hover { opacity: .88; }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 16px 40px; }
+
+    .error-msg {
+      background: #fff2f0;
+      border: 1px solid #ffccc7;
+      border-radius: 8px;
+      color: #cf1322;
+      padding: 14px 18px;
+      margin-bottom: 16px;
+    }
+
+    .result-header {
+      color: #333;
+      font-size: .95rem;
+      margin-bottom: 12px;
+    }
+    .result-header strong { color: #1a6fc4; }
+
+    table {
+      background: #fff;
+      border-collapse: collapse;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.08);
+      overflow: hidden;
+      width: 100%;
+    }
+
+    thead th {
+      background: #1a6fc4;
+      color: #fff;
+      font-size: .82rem;
+      font-weight: 600;
+      padding: 12px 10px;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    tbody tr:nth-child(even) { background: #fafbfc; }
+    tbody tr:hover { background: #e8f0fe; }
+
+    td {
+      border-bottom: 1px solid #f0f0f0;
+      color: #333;
+      font-size: .88rem;
+      padding: 12px 10px;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .train-code {
+      color: #1a6fc4;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+    .time { font-size: 1.05rem; font-weight: 600; }
+    .duration { color: #888; }
+    .sold-out { color: #bbb; }
+    .available { color: #389e0d; font-weight: 600; }
+    .tag-buy {
+      background: #1a6fc4;
+      border-radius: 4px;
+      color: #fff;
+      font-size: .72rem;
+      padding: 2px 7px;
+    }
+    .tag-no-buy {
+      background: #d9d9d9;
+      border-radius: 4px;
+      color: #888;
+      font-size: .72rem;
+      padding: 2px 7px;
+    }
+
+    .no-data {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.08);
+      color: #888;
+      font-size: 1rem;
+      padding: 60px 20px;
+      text-align: center;
+    }
+
+    @media (max-width: 600px) {
+      .form-row { flex-direction: column; }
+      .btn-search { width: 100%; }
+      table { font-size: .75rem; }
+      td, thead th { padding: 8px 6px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🚄 12306 火车票查询</h1>
+  <p>实时查询余票 · 按历时排序</p>
+</header>
+
+<div class="container">
+  <div class="search-box">
+    <form method="post">
+      <div class="form-row">
+        <div class="form-group">
+          <label>出发站</label>
+          <input type="text" name="from_station" placeholder="如：北京" required
+                 value="{{ form.from_station }}">
+        </div>
+        <div class="form-group">
+          <label>到达站</label>
+          <input type="text" name="to_station" placeholder="如：上海" required
+                 value="{{ form.to_station }}">
+        </div>
+        <div class="form-group">
+          <label>出发日期</label>
+          <input type="date" name="date" required value="{{ form.date }}">
+        </div>
+        <div class="form-group" style="min-width:120px;max-width:160px;">
+          <label>排序方式</label>
+          <select name="sort_by">
+            <option value="duration" {% if form.sort_by == 'duration' %}selected{% endif %}>历时最短</option>
+            <option value="depart_time" {% if form.sort_by == 'depart_time' %}selected{% endif %}>出发时间</option>
+          </select>
+        </div>
+        <button type="submit" class="btn-search">查 询</button>
+      </div>
+    </form>
+  </div>
+
+  {% if error %}
+  <div class="error-msg">⚠️ {{ error }}</div>
+  {% endif %}
+
+  {% if trains is not none %}
+    {% if trains %}
+    <p class="result-header">
+      共找到 <strong>{{ trains|length }}</strong> 趟车次
+      （{{ form.from_station }} → {{ form.to_station }}，{{ form.date }}）
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>车次</th>
+          <th>出发站</th>
+          <th>到达站</th>
+          <th>出发时间</th>
+          <th>到达时间</th>
+          <th>历时</th>
+          <th>商务座</th>
+          <th>一等座</th>
+          <th>二等座</th>
+          <th>软卧</th>
+          <th>硬卧</th>
+          <th>硬座</th>
+          <th>无座</th>
+          <th>可购票</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in trains %}
+        <tr>
+          <td class="train-code">{{ t.train_code }}</td>
+          <td>{{ t.from_station }}</td>
+          <td>{{ t.to_station }}</td>
+          <td class="time">{{ t.depart_time }}</td>
+          <td class="time">{{ t.arrive_time }}</td>
+          <td class="duration">{{ t.duration }}</td>
+          {% for seat in [t.business_seat, t.first_class, t.second_class,
+                          t.soft_sleeper, t.hard_sleeper, t.hard_seat, t.no_seat] %}
+          <td class="{{ 'sold-out' if seat == '无' else 'available' }}">{{ seat }}</td>
+          {% endfor %}
+          <td>
+            {% if t.can_buy %}
+            <span class="tag-buy">可购</span>
+            {% else %}
+            <span class="tag-no-buy">不可购</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="no-data">该日期没有找到相关车次，请尝试修改查询条件</div>
+    {% endif %}
+  {% endif %}
+
+</div>
+</body>
+</html>
