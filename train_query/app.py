@@ -1,4 +1,5 @@
 import re
+import json
 import requests
 from flask import Flask, render_template, request
 
@@ -6,19 +7,34 @@ app = Flask(__name__)
 
 _station_cache: dict[str, str] = {}
 
+_BASE_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+}
+
+
+def _new_session() -> requests.Session:
+    """Create a session with 12306 cookies by visiting the init page first."""
+    s = requests.Session()
+    s.headers.update(_BASE_HEADERS)
+    s.get(
+        "https://kyfw.12306.cn/otn/leftTicket/init",
+        headers={"Referer": "https://www.12306.cn/"},
+        timeout=15,
+    )
+    return s
+
 
 def load_stations() -> dict[str, str]:
     if _station_cache:
         return _station_cache
-    url = "https://kyfw.12306.cn/otn/resources/js/framework/station_name.js"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                      "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Referer": "https://www.12306.cn/",
-    }
-    resp = requests.get(url, headers=headers, timeout=15)
+    resp = requests.get(
+        "https://kyfw.12306.cn/otn/resources/js/framework/station_name.js",
+        headers=_BASE_HEADERS,
+        timeout=15,
+    )
     resp.raise_for_status()
-    # Each entry: @pinyin|中文站名|CODE|...
     for name, code in re.findall(r"@[\w]+\|([一-龥]+)\|([A-Z]+)\|", resp.text):
         _station_cache[name] = code
     return _station_cache
@@ -28,7 +44,7 @@ def parse_ticket(raw: str, station_map: dict) -> dict | None:
     p = raw.split("|")
     if len(p) < 35:
         return None
-    duration_str = p[10]  # e.g. "04:48"
+    duration_str = p[10]
     try:
         h, m = map(int, duration_str.split(":"))
         duration_minutes = h * 60 + m
@@ -36,7 +52,7 @@ def parse_ticket(raw: str, station_map: dict) -> dict | None:
         duration_minutes = 9999
 
     def seat(val: str) -> str:
-        return val if val and val != "0" else "无"
+        return val if val and val not in ("0", "") else "无"
 
     return {
         "train_code": p[3],
@@ -47,13 +63,13 @@ def parse_ticket(raw: str, station_map: dict) -> dict | None:
         "duration": duration_str,
         "duration_minutes": duration_minutes,
         "can_buy": p[11] == "Y",
-        "business_seat": seat(p[32]),   # 商务座
-        "first_class": seat(p[31]),     # 一等座
-        "second_class": seat(p[30]),    # 二等座
-        "soft_sleeper": seat(p[23]),    # 软卧
-        "hard_sleeper": seat(p[28]),    # 硬卧
-        "hard_seat": seat(p[29]),       # 硬座
-        "no_seat": seat(p[26]),         # 无座
+        "business_seat": seat(p[32]),
+        "first_class": seat(p[31]),
+        "second_class": seat(p[30]),
+        "soft_sleeper": seat(p[23]),
+        "hard_sleeper": seat(p[28]),
+        "hard_seat": seat(p[29]),
+        "no_seat": seat(p[26]),
     }
 
 
@@ -62,25 +78,37 @@ def query_tickets(from_name: str, to_name: str, date: str):
     from_code = stations.get(from_name)
     to_code = stations.get(to_name)
     if not from_code:
-        return None, f"找不到出发站「{from_name}」，请检查站名是否正确"
+        return None, f"找不到出发站「{from_name}」，请检查站名（如：北京、上海、深圳）"
     if not to_code:
-        return None, f"找不到到达站「{to_name}」，请检查站名是否正确"
+        return None, f"找不到到达站「{to_name}」，请检查站名（如：北京、上海、深圳）"
 
-    url = "https://kyfw.12306.cn/otn/leftTicket/query"
+    session = _new_session()
     params = {
         "leftTicketDTO.train_date": date,
         "leftTicketDTO.from_station": from_code,
         "leftTicketDTO.to_station": to_code,
         "purpose_codes": "ADULT",
     }
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                      "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Referer": "https://kyfw.12306.cn/otn/leftTicket/init",
-    }
-    resp = requests.get(url, params=params, headers=headers, timeout=15)
+    resp = session.get(
+        "https://kyfw.12306.cn/otn/leftTicket/query",
+        params=params,
+        headers={
+            "Referer": "https://kyfw.12306.cn/otn/leftTicket/init",
+            "X-Requested-With": "XMLHttpRequest",
+            "Accept": "application/json, text/javascript, */*; q=0.01",
+        },
+        timeout=20,
+    )
     resp.raise_for_status()
-    data = resp.json()
+
+    raw_text = resp.text.strip()
+    if not raw_text:
+        return None, "12306 返回空响应，可能触发了风控。请稍等片刻后重试，或检查日期是否在预售范围内。"
+
+    try:
+        data = json.loads(raw_text)
+    except json.JSONDecodeError:
+        return None, f"12306 返回了非 JSON 数据（可能是验证码页面），请稍后重试。"
 
     if not data.get("status"):
         msg = data.get("messages") or data.get("message") or "12306 返回错误"
@@ -113,7 +141,7 @@ def index():
                 key = "duration_minutes" if form["sort_by"] == "duration" else "depart_time"
                 trains.sort(key=lambda t: t[key])
         except requests.RequestException as e:
-            error = f"网络请求失败：{e}"
+            error = f"网络连接失败，请检查网络后重试：{e}"
         except Exception as e:
             error = f"查询出错：{e}"
 
