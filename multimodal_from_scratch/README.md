@@ -1,27 +1,35 @@
 # Build a Multimodal Model from Scratch
 
-仿照《Build a Large Language Model from Scratch》(Sebastian Raschka)，
-从零实现一个完整的视觉-语言模型 (VLM)。
+A chapter-by-chapter guide to building a Vision-Language Model (VLM) from
+the ground up, modeled after Sebastian Raschka's
+*Build a Large Language Model from Scratch*.
 
-## 整体架构
+Every model component is implemented inside the notebook cells — no black
+boxes, no pre-built libraries for the core algorithms.
 
-```
-图像 → ViT 编码器 ──→ Projection MLP ──┐
-                                        ├──→ GPT 解码器 ──→ 文本
-文本 → Token 嵌入 ──────────────────────┘
-```
+---
 
-## 章节目录
+## Prerequisites
 
-| 章节 | 主题 | 核心概念 |
-|------|------|----------|
-| Ch 01 | Vision Transformer (ViT) | Patch Embedding、双向注意力、[CLS] token |
-| Ch 02 | GPT 文本解码器 | 因果注意力、自回归生成、权重绑定 |
-| Ch 03 | CLIP 对比学习 | InfoNCE loss、零样本分类 |
-| Ch 04 | Vision-Language Model | 投影 MLP、视觉前缀、两阶段训练 |
-| Ch 05 | 预训练 & 微调 | 特征对齐、指令微调、检查点 |
+This book assumes you have read *Build a Large Language Model from Scratch*
+and are comfortable with Transformers, multi-head attention, and GPT-style
+autoregressive generation.  Those concepts are not re-explained here.
 
-## 快速开始
+---
+
+## Chapters
+
+| Chapter | Topic | Key Concepts |
+|---------|-------|--------------|
+| **Ch 01** | Vision Transformer (ViT) | PatchEmbedding (Conv2d trick), bidirectional attention, [CLS] token, learnable positional embeddings |
+| **Ch 02** | CLIP | InfoNCE contrastive loss, dual encoder, learnable temperature τ, zero-shot classification |
+| **Ch 03** | VLM Architecture | ProjectionMLP (semantic gap bridge), visual prefix, loss masking, two-stage interface |
+| **Ch 04** | Two-Stage Training | Feature alignment (Stage 1), instruction fine-tuning (Stage 2), ablation study |
+| **Ch 05** | Inference | Autoregressive generation, greedy / top-k / nucleus sampling, BLEU, perplexity |
+
+---
+
+## Quick Start
 
 ```bash
 pip install -r requirements.txt
@@ -29,49 +37,41 @@ cd notebooks
 jupyter notebook
 ```
 
-## 文件结构
+Each notebook is fully self-contained — figures are generated inline with
+matplotlib, and all model classes are defined within the notebook cells.
+
+---
+
+## Repository Layout
 
 ```
 multimodal_from_scratch/
-├── vision/
-│   ├── patch_embedding.py   # Patch 提取 + 位置编码
-│   ├── attention.py         # 双向多头自注意力
-│   └── vit.py               # 完整 ViT 模型
-├── language/
-│   ├── attention.py         # 因果多头自注意力
-│   ├── transformer.py       # Transformer 解码器块
-│   └── gpt.py               # 完整 GPT 模型
-├── multimodal/
-│   ├── clip.py              # CLIP 双编码器
-│   ├── projection.py        # 视觉→语言投影 MLP
-│   └── vlm.py               # 完整 VLM (LLaVA 风格)
-├── training/
-│   ├── losses.py            # InfoNCE loss、LM loss
-│   └── trainer.py           # CLIP 训练器、VLM 两阶段训练器
-├── data/
-│   ├── dataset.py           # ImageTextDataset、VQADataset
-│   └── transforms.py        # 图像预处理
-└── notebooks/
-    ├── ch01_vision_transformer.ipynb
-    ├── ch02_gpt_decoder.ipynb
-    ├── ch03_clip.ipynb
-    ├── ch04_vlm.ipynb
-    └── ch05_training.ipynb
+├── notebooks/
+│   ├── ch01_vision_transformer.ipynb
+│   ├── ch02_clip.ipynb
+│   ├── ch03_vlm_architecture.ipynb
+│   ├── ch04_two_stage_training.ipynb
+│   └── ch05_inference.ipynb
+└── requirements.txt
 ```
 
-## 与 LLM from Scratch 的对比
+---
 
-| | LLM from Scratch | **Multimodal from Scratch** |
+## How It Relates to *LLMs from Scratch*
+
+| | LLMs from Scratch | **Multimodal from Scratch** |
 |--|--|--|
-| 核心模型 | GPT | ViT + GPT + Projection |
-| 模态 | 文本 | 图像 + 文本 |
-| 预训练目标 | 下一词预测 | 对比学习 (CLIP) |
-| 微调方式 | 指令微调 | 两阶段：对齐 → 视觉指令 |
-| 代表模型 | GPT-2 | LLaVA-1.5 |
+| Core model | GPT | ViT + ProjectionMLP + GPT |
+| Modalities | Text | Image + Text |
+| Pre-training objective | Next-token prediction | Contrastive (CLIP) |
+| Fine-tuning | Instruction tuning | Two-stage: alignment → visual instruction |
+| Representative model | GPT-2 | LLaVA-1.5 |
 
-## 参考文献
+---
 
-- [An Image is Worth 16x16 Words](https://arxiv.org/abs/2010.11929) — ViT
+## References
+
+- [An Image is Worth 16×16 Words](https://arxiv.org/abs/2010.11929) — ViT
 - [Learning Transferable Visual Models From Natural Language Supervision](https://arxiv.org/abs/2103.00020) — CLIP
 - [Visual Instruction Tuning](https://arxiv.org/abs/2304.08485) — LLaVA
 - [Improved Baselines with Visual Instruction Tuning](https://arxiv.org/abs/2310.03744) — LLaVA-1.5
