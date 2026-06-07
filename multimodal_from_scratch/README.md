@@ -42,6 +42,14 @@ autoregressive generation.  Those concepts are not re-explained here.
 | **Ch 08** | Audio Understanding | Mel spectrogram, audio patch embedding, Whisper-style encoder-decoder, speech recognition |
 | **Ch 09** | Video Understanding | Spatio-temporal patches, factorized attention, video classification, temporal modeling |
 
+### Part IV — Alignment & Reinforcement Learning
+
+| Chapter | Topic | Key Concepts |
+|---------|-------|--------------|
+| **Ch 10** | Unified Multimodal Model | Image + audio + text capstone, multi-encoder VLM, two-stage assembly |
+| **Ch 11** | Reward Modeling | Bradley-Terry preference model, pairwise ranking loss, reward distribution, RLHF pipeline |
+| **Ch 12** | DPO & GRPO | Direct Preference Optimization, log-ratio loss, Group Relative Policy Optimization, verifier-based reward |
+
 ---
 
 ## Quick Start
@@ -65,12 +73,15 @@ multimodal_from_scratch/
 │   ├── ch01_vision_transformer.ipynb
 │   ├── ch02_clip.ipynb
 │   ├── ch03_vlm_architecture.ipynb
-│   ├── ch04_two_stage_training.ipynb   ← includes inference & evaluation
+│   ├── ch04_two_stage_training.ipynb
 │   ├── ch05_mae.ipynb
 │   ├── ch06_vqvae.ipynb
 │   ├── ch07_diffusion.ipynb
 │   ├── ch08_audio.ipynb
-│   └── ch09_video.ipynb
+│   ├── ch09_video.ipynb
+│   ├── ch10_capstone.ipynb
+│   ├── ch11_reward_modeling.ipynb
+│   └── ch12_dpo_grpo.ipynb
 └── requirements.txt
 ```
 
@@ -84,7 +95,8 @@ multimodal_from_scratch/
 | Modalities | Text only | Image, Audio, Video + Text |
 | Pre-training | Next-token prediction | Contrastive (CLIP) + Reconstruction (MAE) |
 | Generation | Autoregressive text | Diffusion (images) + VQ-VAE (discrete tokens) |
-| Representative models | GPT-2 | LLaVA, Whisper, ViViT |
+| Alignment | — | Reward Modeling + DPO + GRPO |
+| Representative models | GPT-2 | LLaVA, Whisper, ViViT, DeepSeek-R1 |
 
 ---
 
@@ -99,3 +111,6 @@ multimodal_from_scratch/
 - [High-Resolution Image Synthesis with Latent Diffusion Models](https://arxiv.org/abs/2112.10752) — Stable Diffusion
 - [Robust Speech Recognition via Large-Scale Weak Supervision](https://arxiv.org/abs/2212.04356) — Whisper
 - [ViViT: A Video Vision Transformer](https://arxiv.org/abs/2103.15691) — Video ViT
+- [Training Language Models to Follow Instructions with Human Feedback](https://arxiv.org/abs/2203.02155) — InstructGPT / RLHF
+- [Direct Preference Optimization: Your Language Model is Secretly a Reward Model](https://arxiv.org/abs/2305.18290) — DPO
+- [DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models](https://arxiv.org/abs/2402.03300) — GRPO
