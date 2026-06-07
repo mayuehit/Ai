@@ -26,6 +26,7 @@ autoregressive generation.  Those concepts are not re-explained here.
 | **Ch 03** | VLM Architecture | ProjectionMLP (semantic gap bridge), visual prefix, loss masking, two-stage interface |
 | **Ch 04** | Two-Stage Training | Feature alignment (Stage 1), instruction fine-tuning (Stage 2), ablation study |
 | **Ch 05** | Inference | Autoregressive generation, greedy / top-k / nucleus sampling, BLEU, perplexity |
+| **Ch 06** | Diffusion Models | DDPM forward/reverse process, noise schedule, ε-prediction, U-Net, class conditioning, classifier-free guidance |
 
 ---
 
@@ -51,7 +52,8 @@ multimodal_from_scratch/
 │   ├── ch02_clip.ipynb
 │   ├── ch03_vlm_architecture.ipynb
 │   ├── ch04_two_stage_training.ipynb
-│   └── ch05_inference.ipynb
+│   ├── ch05_inference.ipynb
+│   └── ch06_diffusion.ipynb
 └── requirements.txt
 ```
 
@@ -75,3 +77,5 @@ multimodal_from_scratch/
 - [Learning Transferable Visual Models From Natural Language Supervision](https://arxiv.org/abs/2103.00020) — CLIP
 - [Visual Instruction Tuning](https://arxiv.org/abs/2304.08485) — LLaVA
 - [Improved Baselines with Visual Instruction Tuning](https://arxiv.org/abs/2310.03744) — LLaVA-1.5
+- [Denoising Diffusion Probabilistic Models](https://arxiv.org/abs/2006.11239) — DDPM
+- [High-Resolution Image Synthesis with Latent Diffusion Models](https://arxiv.org/abs/2112.10752) — Stable Diffusion
