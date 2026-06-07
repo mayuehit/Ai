@@ -1,8 +1,7 @@
 # Build a Multimodal Model from Scratch
 
-A chapter-by-chapter guide to building a Vision-Language Model (VLM) from
-the ground up, modeled after Sebastian Raschka's
-*Build a Large Language Model from Scratch*.
+A chapter-by-chapter guide to building multimodal AI systems from the ground up,
+modeled after Sebastian Raschka's *Build a Large Language Model from Scratch*.
 
 Every model component is implemented inside the notebook cells — no black
 boxes, no pre-built libraries for the core algorithms.
@@ -19,14 +18,29 @@ autoregressive generation.  Those concepts are not re-explained here.
 
 ## Chapters
 
+### Part I — Vision & Cross-Modal Alignment
+
 | Chapter | Topic | Key Concepts |
 |---------|-------|--------------|
 | **Ch 01** | Vision Transformer (ViT) | PatchEmbedding (Conv2d trick), bidirectional attention, [CLS] token, learnable positional embeddings |
 | **Ch 02** | CLIP | InfoNCE contrastive loss, dual encoder, learnable temperature τ, zero-shot classification |
-| **Ch 03** | VLM Architecture | ProjectionMLP (semantic gap bridge), visual prefix, loss masking, two-stage interface |
-| **Ch 04** | Two-Stage Training | Feature alignment (Stage 1), instruction fine-tuning (Stage 2), ablation study |
-| **Ch 05** | Inference | Autoregressive generation, greedy / top-k / nucleus sampling, BLEU, perplexity |
-| **Ch 06** | Diffusion Models | DDPM forward/reverse process, noise schedule, ε-prediction, U-Net, class conditioning, classifier-free guidance |
+| **Ch 03** | VLM Architecture | ProjectionMLP (semantic gap bridge), visual prefix, hybrid attention mask, loss masking |
+| **Ch 04** | Training & Evaluation | Two-stage training, feature alignment, instruction fine-tuning, BLEU, perplexity, ablation |
+
+### Part II — Self-Supervised & Generative Vision
+
+| Chapter | Topic | Key Concepts |
+|---------|-------|--------------|
+| **Ch 05** | Masked Autoencoder (MAE) | Masked patch reconstruction, asymmetric encoder-decoder, self-supervised pre-training |
+| **Ch 06** | Image Tokenization (VQ-VAE) | Vector quantization, discrete codebook, straight-through estimator, latent image tokens |
+| **Ch 07** | Diffusion Models (DDPM) | Forward/reverse process, noise schedule, ε-prediction, U-Net, classifier-free guidance |
+
+### Part III — Beyond Images
+
+| Chapter | Topic | Key Concepts |
+|---------|-------|--------------|
+| **Ch 08** | Audio Understanding | Mel spectrogram, audio patch embedding, Whisper-style encoder-decoder, speech recognition |
+| **Ch 09** | Video Understanding | Spatio-temporal patches, factorized attention, video classification, temporal modeling |
 
 ---
 
@@ -51,9 +65,12 @@ multimodal_from_scratch/
 │   ├── ch01_vision_transformer.ipynb
 │   ├── ch02_clip.ipynb
 │   ├── ch03_vlm_architecture.ipynb
-│   ├── ch04_two_stage_training.ipynb
-│   ├── ch05_inference.ipynb
-│   └── ch06_diffusion.ipynb
+│   ├── ch04_two_stage_training.ipynb   ← includes inference & evaluation
+│   ├── ch05_mae.ipynb
+│   ├── ch06_vqvae.ipynb
+│   ├── ch07_diffusion.ipynb
+│   ├── ch08_audio.ipynb
+│   └── ch09_video.ipynb
 └── requirements.txt
 ```
 
@@ -64,10 +81,10 @@ multimodal_from_scratch/
 | | LLMs from Scratch | **Multimodal from Scratch** |
 |--|--|--|
 | Core model | GPT | ViT + ProjectionMLP + GPT |
-| Modalities | Text | Image + Text |
-| Pre-training objective | Next-token prediction | Contrastive (CLIP) |
-| Fine-tuning | Instruction tuning | Two-stage: alignment → visual instruction |
-| Representative model | GPT-2 | LLaVA-1.5 |
+| Modalities | Text only | Image, Audio, Video + Text |
+| Pre-training | Next-token prediction | Contrastive (CLIP) + Reconstruction (MAE) |
+| Generation | Autoregressive text | Diffusion (images) + VQ-VAE (discrete tokens) |
+| Representative models | GPT-2 | LLaVA, Whisper, ViViT |
 
 ---
 
@@ -76,6 +93,9 @@ multimodal_from_scratch/
 - [An Image is Worth 16×16 Words](https://arxiv.org/abs/2010.11929) — ViT
 - [Learning Transferable Visual Models From Natural Language Supervision](https://arxiv.org/abs/2103.00020) — CLIP
 - [Visual Instruction Tuning](https://arxiv.org/abs/2304.08485) — LLaVA
-- [Improved Baselines with Visual Instruction Tuning](https://arxiv.org/abs/2310.03744) — LLaVA-1.5
+- [Masked Autoencoders Are Scalable Vision Learners](https://arxiv.org/abs/2111.06377) — MAE
+- [Neural Discrete Representation Learning](https://arxiv.org/abs/1711.00937) — VQ-VAE
 - [Denoising Diffusion Probabilistic Models](https://arxiv.org/abs/2006.11239) — DDPM
 - [High-Resolution Image Synthesis with Latent Diffusion Models](https://arxiv.org/abs/2112.10752) — Stable Diffusion
+- [Robust Speech Recognition via Large-Scale Weak Supervision](https://arxiv.org/abs/2212.04356) — Whisper
+- [ViViT: A Video Vision Transformer](https://arxiv.org/abs/2103.15691) — Video ViT
